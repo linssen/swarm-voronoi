@@ -1,3 +1,5 @@
+@import 'normalize';
+
 html,
 body,
 .projection {
@@ -5,5 +7,8 @@ body,
     height: 100%;
 }
 .projection {
-    background: RED;
+    background: #333;
+}
+circle {
+    fill: #efefef;
 }
