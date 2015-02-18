@@ -1,0 +1,24 @@
+{
+  "name": "voronoi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "browserify": "^8.1.3"
+  },
+  "devDependencies": {
+    "browserify": "^8.1.3",
+    "node-sass": "^2.0.1",
+    "watchify": "^2.3.0"
+  },
+  "scripts": {
+    "watch-js": "watchify ./static/scripts/main.js -o ./static/dist/scripts/bundle.js -dv",
+    "build-js": "browserify ./static/scripts/main.js > ./static/dist/scripts/bundle.js",
+    "watch-css": "node-sass --output-style=expanded --source-map ./static/dist/styles/main.map --watch  --output ./static/dist/styles ./static/styles/main.scss",
+    "build-css": "node-sass --output-style compressed --output ./static/dist/styles ./static/styles/main.scss",
+    "watch": "npm run watch-js & npm run watch-css",
+    "build": "npm run build-js && npm run build-css"
+  },
+  "author": "",
+  "license": "ISC"
+}
