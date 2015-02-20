@@ -12,3 +12,8 @@ body,
 circle {
     fill: #efefef;
 }
+path {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 0.5px;
+}

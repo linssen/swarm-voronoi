@@ -5,10 +5,9 @@ var d3 = require('./vendor/d3');
 function Projection (el) {
     this.el = el;
     this.canvas = this.el.append('svg');
-    this.points = this.canvas.selectAll('.point')
-        .data(this.getPoints(), function (d) { return d.id; });
     this.features = this.getFeatures();
     this.projection = d3.geo.mercator().translate([0, 0]).scale(1);
+    this.voronoi = d3.geom.voronoi();
     this.path = d3.geo.path().projection(this.projection);
     this.bounds = this.path.bounds(this.features);
 
@@ -33,6 +32,19 @@ Projection.prototype.getPoints = function () {
         return d;
     });
 };
+Projection.prototype.getVoronoiData = function () {
+    var data, seen;
+    data = [];
+    seen = [];
+    this.getPoints().forEach(function (d) {
+        var hash, projection;
+        projection = this.projection([d.longitude, d.latitude]);
+        hash = projection.join(',');
+        if (seen.indexOf(hash) === -1) { data.push(projection); }
+        seen.push(hash);
+    }, this);
+    return data;
+};
 Projection.prototype.setDimensions = function () {
     var b, d, s, t;
     b = this.bounds;
@@ -43,17 +55,23 @@ Projection.prototype.setDimensions = function () {
     this.projection.scale(s).translate(t);
 };
 Projection.prototype.draw = function () {
-    var projection = this.projection;
+    var points, projection, voronoi;
     this.setDimensions();
-    this.points.enter()
+
+    projection = this.projection;
+    points = this.canvas.selectAll('.point')
+        .data(this.getPoints(), function (d) { return d.id; });
+    voronoi = this.canvas.selectAll('path')
+        .data(d3.geom.voronoi(this.getVoronoiData()));
+    points.enter()
         .append('circle')
         .attr('class', 'point')
         .attr('r', 1)
         .attr('transform', function (d) {
             return 'translate(' + projection([d.longitude, d.latitude]) + ')';
         });
-    this.points.exit().remove();
+    voronoi.enter().append('svg:path')
+        .attr('d', function(d) { return 'M' + d.join('L') + 'Z'; });
 };
-
 
 new Projection(d3.select('.projection'));
