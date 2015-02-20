@@ -7,13 +7,12 @@ body,
     height: 100%;
 }
 .projection {
-    background: #333;
+    background: rgba(251, 60, 66, 1);
 }
 circle {
-    fill: #efefef;
+    fill: rgba(255, 255, 255, 0.2);
 }
 path {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.5);
+    stroke: rgba(255, 255, 255, 0.2);
     stroke-width: 0.5px;
 }

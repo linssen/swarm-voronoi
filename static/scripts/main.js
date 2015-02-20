@@ -71,6 +71,10 @@ Projection.prototype.draw = function () {
             return 'translate(' + projection([d.longitude, d.latitude]) + ')';
         });
     voronoi.enter().append('svg:path')
+        .attr('fill', function () {
+            var diffuser = 0.2;
+            return 'rgba(255, 255, 255, ' + Math.random() * diffuser + ')';
+        })
         .attr('d', function(d) { return 'M' + d.join('L') + 'Z'; });
 };
 
