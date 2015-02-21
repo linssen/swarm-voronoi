@@ -1,10 +1,10 @@
 'use strict';
 
 var d3 = require('./vendor/d3');
-var vertices;
 
 function Projection (el) {
     var _this = this;
+
     this.el = el;
     this.canvas = this.el.append('svg').attr('preserveAspectRatio', 'xMinYMin meet');
     this.features = this.getFeatures();
@@ -14,20 +14,22 @@ function Projection (el) {
     this.path = d3.geo.path().projection(this.projection);
     this.bounds = this.path.bounds(this.features);
     this.setDimensions();
-
-    vertices = [[0,0]].concat(this.getPoints());
-    this.fills = vertices.map(function () {
-        var diffuser = 0.15;
-        return 'rgba(255, 255, 255, ' + Math.random() * diffuser + ')';
-    });
+    this.fills = this.setFills();
+    this.mouse = [0, 0];
 
     d3.select('body').on('mousemove', function() {
-        vertices[0] = d3.mouse(this);
+        _this.mouse = d3.mouse(this);
         _this.draw();
     });
 
     this.draw();
 }
+Projection.prototype.setFills = function () {
+    var fillDiffuse = 0.2;
+    return [].concat(this.features.coordinates).map(function () {
+        return 'rgba(255, 255, 255, ' + Math.random() * fillDiffuse + ')';
+    });
+};
 Projection.prototype.getFeatures = function () {
     return {
         type: 'MultiPoint',
@@ -35,11 +37,6 @@ Projection.prototype.getFeatures = function () {
             return [d.longitude, d.latitude];
         })
     };
-};
-Projection.prototype.getDimensions = function () {
-    var node;
-    node = this.el.node();
-    return { width: node.offsetWidth, height: node.offsetHeight };
 };
 Projection.prototype.getPoints = function () {
     return JSON.parse(this.el.attr('data-points')).map(function (d, id) {
@@ -51,50 +48,47 @@ Projection.prototype.getVoronoiData = function () {
     var data, seen;
     data = [];
     seen = [];
-    vertices.slice(1).forEach(function (d) {
+    this.getPoints().forEach(function (d) {
         var hash, projection;
         projection = this.projection([d.longitude, d.latitude]);
         hash = projection.join(',');
         if (seen.indexOf(hash) === -1) { data.push(projection); }
         seen.push(hash);
     }, this);
-    data[0] = vertices[0];
-    return data;
+    return [this.mouse].concat(data);
+
 };
 Projection.prototype.setDimensions = function () {
     var b, d, n, s, t;
     n = this.el.node();
     b = this.bounds;
-    d = { width: n.offsetWidth, height: n.offsetHeight };
-    this.canvas
-        .attr('viewBox', [0, 0, d.width, d.height].join(' '));
-    s = 0.95 / Math.max((b[1][0] - b[0][0]) / d.width, (b[1][1] - b[0][1]) / d.height);
-    t = [(d.width - s * (b[1][0] + b[0][0])) / 2, (d.height - s * (b[1][1] + b[0][1])) / 2];
+    d = { w: n.offsetWidth, h: n.offsetHeight };
+    this.canvas.attr('viewBox', [0, 0, d.w, d.h].join(' '));
+    s = 0.95 / Math.max((b[1][0] - b[0][0]) / d.w, (b[1][1] - b[0][1]) / d.h);
+    t = [(d.w - s * (b[1][0] + b[0][0])) / 2, (d.h - s * (b[1][1] + b[0][1])) / 2];
     this.projection.scale(s).translate(t);
-    this.voronoi.clipExtent([[0, 0], [d.width, d.height]]);
+    this.voronoi.clipExtent([[0, 0], [d.w, d.h]]);
 };
 Projection.prototype.draw = function () {
-    var points, projection, _this;
-    _this = this;
+    var data, points, polygon;
 
-    var polygon = function (d) { return 'M' + d.join('L') + 'Z'; };
+    data = this.getVoronoiData();
+    polygon = function (d) { return 'M' + d.join('L') + 'Z'; };
 
-    projection = this.projection;
-    points = this.canvas.selectAll('.point')
-        .data(this.getPoints(), function (d) { return d.id; });
+    points = this.canvas.selectAll('circle')
+        .data(data.slice(1), function (d) { return d.id; });
     points.enter()
         .append('circle')
-        .attr('class', 'point')
         .attr('r', 1)
         .attr('transform', function (d) {
-            return 'translate(' + projection([d.longitude, d.latitude]) + ')';
+            return 'translate(' + d.join(',') + ')';
         });
 
-    this.voronoiPath = this.voronoiPath.data(this.voronoi(this.getVoronoiData()), polygon);
-    this.voronoiPath.exit().remove();
+    this.voronoiPath = this.voronoiPath.data(this.voronoi(data), polygon);
     this.voronoiPath.enter().append('path')
-        .attr('fill', function (d, i) { return _this.fills[i]; }, this)
+        .attr('fill', function (d, i) { return this.fills[i]; }.bind(this))
         .attr('d', polygon);
+    this.voronoiPath.exit().remove();
     this.voronoiPath.order();
 };
 
