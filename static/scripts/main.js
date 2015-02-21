@@ -10,12 +10,11 @@ function Projection (el) {
     this.features = this.getFeatures();
     this.projection = d3.geo.mercator().translate([0, 0]).scale(1);
     this.voronoi = d3.geom.voronoi();
-    this.voronoiPath = this.canvas.append('g').selectAll('path');
     this.path = d3.geo.path().projection(this.projection);
     this.bounds = this.path.bounds(this.features);
     this.setDimensions();
     this.fills = this.setFills();
-    this.mouse = [0, 0];
+    this.mouse = null;
 
     d3.select('body').on('mousemove', function() {
         _this.mouse = d3.mouse(this);
@@ -55,7 +54,7 @@ Projection.prototype.getVoronoiData = function () {
         if (seen.indexOf(hash) === -1) { data.push(projection); }
         seen.push(hash);
     }, this);
-    return [this.mouse].concat(data);
+    return data;
 
 };
 Projection.prototype.setDimensions = function () {
@@ -70,26 +69,29 @@ Projection.prototype.setDimensions = function () {
     this.voronoi.clipExtent([[0, 0], [d.w, d.h]]);
 };
 Projection.prototype.draw = function () {
-    var data, points, polygon;
+    var data, path, points, polygon;
 
     data = this.getVoronoiData();
     polygon = function (d) { return 'M' + d.join('L') + 'Z'; };
 
     points = this.canvas.selectAll('circle')
-        .data(data.slice(1), function (d) { return d.id; });
+        .data(data);
     points.enter()
         .append('circle')
         .attr('r', 1)
         .attr('transform', function (d) {
             return 'translate(' + d.join(',') + ')';
         });
+    points.exit().remove();
 
-    this.voronoiPath = this.voronoiPath.data(this.voronoi(data), polygon);
-    this.voronoiPath.enter().append('path')
+    if (this.mouse !== null) { data = [this.mouse].concat(data); }
+    path = this.canvas.selectAll('path')
+        .data(this.voronoi(data), polygon);
+    path.enter().append('path')
         .attr('fill', function (d, i) { return this.fills[i]; }.bind(this))
         .attr('d', polygon);
-    this.voronoiPath.exit().remove();
-    this.voronoiPath.order();
+    path.exit().remove();
+    path.order();
 };
 
 new Projection(d3.select('.projection'));
